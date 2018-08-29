@@ -1,0 +1,29 @@
+version: '3'
+services:
+  lifebelt:
+    image: neoskop/lifebelt-couchbase:latest
+    command: backup -v
+    environment:
+      PROJECT_PREFIX: test
+      SOURCE_HOST: db
+      SOURCE_USERNAME: admin
+      SOURCE_PASSWORD: supersecret
+      TARGET_HOST: sftp
+      TARGET_USERNAME: uploader
+      TARGET_PASSWORD: supersecret
+    depends_on:
+      - db
+      - sftp
+  db:
+    image: neoskop/couchbase
+    environment:
+      BUCKET: foo
+      BUCKET_PASSWORD: supersecret
+      PASSWORD: supersecret
+    ports:
+      - 8091:8091
+  sftp:
+    image: atmoz/sftp:alpine-3.7
+    command: uploader:supersecret:1000::couchbase
+    volumes:
+      - ./uploads:/home/uploader

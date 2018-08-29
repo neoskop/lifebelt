@@ -1,0 +1,33 @@
+version: '3'
+services:
+  lifebelt:
+    image: neoskop/lifebelt-mysql:latest
+    command: test-backup -v
+    environment:
+      PROJECT_PREFIX: test
+      SOURCE_HOST: db
+      SOURCE_USERNAME: root
+      SOURCE_PASSWORD: supersecret
+      SOURCE_THROTTLE: "1000"
+      TARGET_HOST: sftp
+      TARGET_USERNAME: uploader
+      TARGET_PASSWORD: supersecret
+    depends_on:
+      - db
+      - sftp
+    volumes:
+      - "db-data:/var/lib/mysql"
+  db:
+    image: mysql:5.7.22
+    environment:
+      MYSQL_ROOT_PASSWORD: supersecret
+      MYSQL_DATABASE: test
+    volumes:
+      - "db-data:/var/lib/mysql"
+  sftp:
+    image: atmoz/sftp:alpine-3.7
+    command: uploader:supersecret:1000::mysql
+    volumes:
+      - ./uploads:/home/uploader
+volumes:
+  db-data:
