@@ -1,0 +1,26 @@
+version: '3'
+services:
+  lifebelt:
+    image: neoskop/lifebelt-couchdb:latest
+    command: backup -v
+    environment:
+      PROJECT_PREFIX: test
+      TARGET_HOST: sftp
+      TARGET_USERNAME: uploader
+      TARGET_PASSWORD: supersecret
+    depends_on:
+      - db
+      - sftp
+    volumes:
+      - "db-data:/opt/couchdb/data"
+  db:
+    image: couchdb
+    volumes:
+      - "db-data:/opt/couchdb/data"
+  sftp:
+    image: atmoz/sftp:alpine-3.7
+    command: uploader:supersecret:1000::couchdb
+    volumes:
+      - ./uploads:/home/uploader
+volumes:
+  db-data:

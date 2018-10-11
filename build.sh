@@ -21,3 +21,4 @@ build_provider() {
 docker build -f base/Dockerfile -t neoskop/lifebelt-base:latest base
 build_provider "couchbase"
 build_provider "mysql"
+build_provider "couchdb"

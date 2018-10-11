@@ -79,7 +79,11 @@ export class UploaderService extends SftpService {
       await new Promise((resolve, reject) => {
         sftp.symlink(realSourcePath, realTargetPath, (err: Error) => {
           if (err) {
-            reject(err.message);
+            reject(
+              `Symlinking ${chalk.bold(realSourcePath)} to ${chalk.bold(
+                realTargetPath
+              )} failed: ${err.message}`
+            );
           }
 
           resolve();
