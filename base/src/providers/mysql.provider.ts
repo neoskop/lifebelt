@@ -135,7 +135,7 @@ class MySQLProvider extends Provider {
     await this.performBackup();
   }
 
-  restore() {}
+  async performRestore() {}
 
   artifactExtension() {
     return ".xbstream";

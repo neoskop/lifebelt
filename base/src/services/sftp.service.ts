@@ -36,7 +36,7 @@ export abstract class SftpService {
           ].join("\n\t")
         );
     
-        return new Promise((resolve, reject) => {
+        return new Promise<SFTPWrapper>((resolve, reject) => {
           this.connection
             .on("ready", () => {
               this.connection.sftp((err: Error, sftp: SFTPWrapper) => {

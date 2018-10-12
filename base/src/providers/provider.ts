@@ -4,14 +4,33 @@ import * as winston from "winston";
 import chalk from "chalk";
 import { statSync } from "fs";
 import convict from "convict";
+import { DownloaderService } from "../services/downloader.service";
 
 export abstract class Provider {
   abstract config(): Object;
   abstract systemCheck(): SystemCheckResult;
   abstract displayName(): string;
-  protected abstract async performBackup(): Promise<string>;
   abstract async testBackup();
-  abstract async restore();
+  protected abstract async performBackup(): Promise<string>;
+  protected abstract async performRestore(artifactPath: string);
+  
+  protected async isDatabaseEmpty(): Promise<boolean> {
+    return true;
+  }
+
+  async restore() {
+    if (!this.isDatabaseEmpty()) {
+      winston.debug('The database is not empty - won\'t try to restore');
+      return;
+    }
+
+    const downloader = new DownloaderService();
+    const tempDirectory = this.createTempDirectory();
+    const artifactPath = `${tempDirectory}/latest${this.artifactExtension()}`;
+    await downloader.fetchLatest(this.artifactExtension(), artifactPath);
+    await this.performRestore(artifactPath);
+    shelljs.exec(`rm -rf ${tempDirectory}`);
+  }
 
   public async backup(): Promise<string> {
     const startTime = process.hrtime();

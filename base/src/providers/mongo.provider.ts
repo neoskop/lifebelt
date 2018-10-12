@@ -24,7 +24,7 @@ class MongoProvider extends Provider {
 
   testBackup() {}
 
-  restore() {}
+  async performRestore() {}
 }
 
 export default MongoProvider;

@@ -15,16 +15,12 @@
     "removeComments": true,
     "allowJs": true,
     "noUnusedLocals": true,
+    "lib": ["es6", "dom", "esnext"],
   },
   "formatCodeOptions": {
     "identSize": 2,
     "tabSize": 2
   },
-  "exclude": [
-    "node_modules",
-    "**/*.spec.ts"
-  ],
-  "include": [
-    "**/*.ts"
-  ]
+  "exclude": ["node_modules", "**/*.spec.ts"],
+  "include": ["**/*.ts"]
 }

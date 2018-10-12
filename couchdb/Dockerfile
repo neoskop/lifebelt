@@ -4,7 +4,6 @@ ENV SOURCE_TYPE=couchdb \
     FORCE_COLOR=1
 RUN groupadd -g 5984 couchdb  && \
     usermod -a -G couchdb node
-USER node
 WORKDIR /home/node
 COPY --from=neoskop/lifebelt-base:latest /home/node/ /home/node/
 COPY --from=neoskop/lifebelt-base:latest /docker-entrypoint.sh /

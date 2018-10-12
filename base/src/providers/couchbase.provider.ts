@@ -119,7 +119,7 @@ class CouchbaseProvider extends Provider {
     await this.performBackup();
   }
 
-  restore() {}
+  async performRestore() {}
 
   private serverUri() {
     return `http://${Config.get("source.host")}:${Config.get("source.port")}`;
