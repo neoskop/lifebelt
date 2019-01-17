@@ -10,6 +10,7 @@ Lifebelt can currently only back up the following DBMS:
 
 - MySQL (Docker image: `neoskop/lifebelt-mysql`)
 - Couchbase (Docker image: `neoskop/lifebelt-couchbase`)
+- CouchDB (Docker image: `neoskop/lifebelt-couchdb`)
 
 Pull requests for additional providers are much welcome!
 
@@ -55,9 +56,10 @@ to create and push new docker images.
 ## ToDo
 
 - Implement restoring
+  - MySQL
+  - Couchbase
 - Implement verification
 - Add more providers
-  - CouchDB
   - MongoDB
 - Add k8s examples
   - As a sidecar in a pod
