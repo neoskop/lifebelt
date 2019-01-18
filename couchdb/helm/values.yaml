@@ -51,7 +51,7 @@ helperImage:
 
 backupImage:
   repository: neoskop/lifebelt-couchdb
-  tag: 0.0.5
+  tag: 0.0.6
   pullPolicy: IfNotPresent
 
 ## CouchDB is happy to spin up cluster nodes in parallel, but if you encounter
