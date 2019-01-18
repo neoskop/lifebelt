@@ -13,14 +13,18 @@ export abstract class Provider {
   abstract async testBackup();
   protected abstract async performBackup(): Promise<string>;
   protected abstract async performRestore(artifactPath: string);
-  
+
   protected async isDatabaseEmpty(): Promise<boolean> {
     return true;
   }
 
+  protected checkRestorePrereqs() {}
+
   async restore() {
-    if (!this.isDatabaseEmpty()) {
-      winston.debug('The database is not empty - won\'t try to restore');
+    this.checkRestorePrereqs();
+
+    if (!(await this.isDatabaseEmpty())) {
+      winston.debug("The database is not empty - won't try to restore");
       return;
     }
 
@@ -55,7 +59,7 @@ export abstract class Provider {
     return tempDirectory;
   }
 
-  protected getFileSize(path): string {
+  protected getFileSize(path: string): string {
     const stats = statSync(path);
     const size = stats["size"];
     const i = Math.floor(Math.log(size) / Math.log(1024));

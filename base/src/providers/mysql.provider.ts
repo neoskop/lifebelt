@@ -4,6 +4,8 @@ import * as shelljs from "shelljs";
 import chalk from "chalk";
 import { Config } from "../config";
 import * as winston from "winston";
+import * as fs from "fs";
+import * as path from "path";
 
 class MySQLProvider extends Provider {
   constructor() {
@@ -69,7 +71,9 @@ class MySQLProvider extends Provider {
     if (missingCommands.length > 0) {
       return {
         success: false,
-        errorMessage: `Command(s) ${missingCommands.map(c => chalk.bold(c)).join(', ')} not found.`
+        errorMessage: `Command(s) ${missingCommands
+          .map(c => chalk.bold(c))
+          .join(", ")} not found.`
       };
     }
 
@@ -110,7 +114,10 @@ class MySQLProvider extends Provider {
     const command = commandParts.join(" ");
     winston.debug(
       `Will execute the following command: ${chalk.bold(
-        command.replace(Config.get("source.password"), "*".repeat(Config.get("source.password").length))
+        command.replace(
+          Config.get("source.password"),
+          "*".repeat(Config.get("source.password").length)
+        )
       )}`
     );
 
@@ -135,24 +142,148 @@ class MySQLProvider extends Provider {
     await this.performBackup();
   }
 
-  async performRestore() {}
+  private async getFiles(dir: string): Promise<string[]> {
+    const subdirs = fs.readdirSync(dir);
+    const files = await Promise.all(
+      subdirs.map(async subdir => {
+        const res = path.resolve(dir, subdir);
+        return fs.statSync(res).isDirectory() ? this.getFiles(res) : [res];
+      })
+    );
+    return files.reduce((a, f) => a.concat(f), []);
+  }
+
+  private prepareBackup(runCount: number) {
+    const prepareResult: any = shelljs.exec(
+      "xtrabackup --prepare --target-dir=.",
+      {
+        silent: true
+      }
+    );
+
+    if (prepareResult.code !== 0) {
+      throw new Error(`Preparing of backup failed: ${prepareResult.stderr}`);
+    }
+
+    winston.debug(`Prepare run #${runCount} succeeded.`);
+  }
+
+  protected checkRestorePrereqs() {
+    if (process.getuid() !== 0) {
+      throw new Error("Lifebelt must run as root when restoring MySQL data");
+    }
+  }
+
+  async performRestore(artifactPath: string) {
+    const tempDir = this.createTempDirectory();
+    shelljs.cd(tempDir);
+    const unpackingResult: any = shelljs.exec(`xbstream -x < ${artifactPath}`, {
+      silent: true
+    });
+
+    if (unpackingResult.code !== 0) {
+      throw new Error(`Unpacking of backup failed: ${unpackingResult.stderr}`);
+    }
+
+    winston.debug(`Unpacked ${chalk.bold(artifactPath)} successfully`);
+
+    (await this.getFiles("."))
+      .filter(f => f.endsWith(".qp"))
+      .forEach(f => {
+        const decompressionResult: any = shelljs.exec(
+          `qpress -vd ${f} $(dirname ${f})`,
+          {
+            silent: true
+          }
+        );
+
+        if (decompressionResult.code !== 0) {
+          throw new Error(
+            `Decompression of qpress file ${chalk.bold(f)} failed: ${
+              decompressionResult.stderr
+            }`
+          );
+        }
+      });
+
+    winston.debug(`Decompressed qpress files successfully`);
+
+    this.prepareBackup(1);
+    this.prepareBackup(2);
+
+    const copyResult: any = shelljs.exec("rsync -avrP . /var/lib/mysql", {
+      silent: true
+    });
+
+    if (copyResult.code !== 0) {
+      throw new Error(`Copying of files failed: ${copyResult.stderr}`);
+    }
+
+    const chownResult: any = shelljs.exec("chwon -R mysql:mysql /var/lib/mysql", {
+      silent: true
+    });
+
+    if (chownResult.code !== 0) {
+      throw new Error(
+        `Changing ownership of files failed: ${chownResult.stderr}`
+      );
+    }
+
+    winston.info("Backup successfully restored");
+  }
 
   artifactExtension() {
     return ".xbstream";
   }
 
   private async waitForServer() {
-    return new Promise((resolve) => {
-      shelljs.exec(`mysqladmin ping -h${Config.get("source.host")} --silent`, (code) => {
-        if (code !== 0) {
-          winston.debug("Server not reachable - will retry in 5s");
-          setTimeout(() => {
-            this.waitForServer().then(() => resolve());
-          }, 5000);
-        } else {
-          resolve();
+    return new Promise(resolve => {
+      shelljs.exec(
+        `mysqladmin ping -h${Config.get("source.host")} --silent`,
+        code => {
+          if (code !== 0) {
+            winston.debug("Server not reachable - will retry in 5s");
+            setTimeout(() => {
+              this.waitForServer().then(() => resolve());
+            }, 5000);
+          } else {
+            resolve();
+          }
         }
-      });
+      );
+    });
+  }
+
+  protected async isDatabaseEmpty(): Promise<boolean> {
+    return new Promise<boolean>((resolve, reject) => {
+      const datadir = Config.get("source.datadir");
+      winston.debug(`Check that ${chalk.bold(datadir)} exists`);
+
+      if (!fs.existsSync(datadir)) {
+        winston.debug(`Data directory ${chalk.bold(datadir)} does not exist`);
+        resolve(false);
+        return;
+      } else {
+        winston.debug(`Check that ${chalk.bold(datadir)} is accessible`);
+
+        try {
+          fs.accessSync(datadir, fs.constants.R_OK | fs.constants.X_OK);
+        } catch (err) {
+          winston.debug(`Can't read/execute ${chalk.bold(datadir)}`);
+          resolve(false);
+          return;
+        }
+
+        winston.debug(`Check that ${chalk.bold(datadir)} is not empty`);
+        fs.readdir(datadir, function(err, files) {
+          if (err) {
+            reject(err);
+          } else {
+            winston.debug(`${chalk.bold(datadir)} contains the following files: ${files.join(', ')}`);
+            resolve(!files.length);
+          }
+        });
+      }
     });
   }
 }
