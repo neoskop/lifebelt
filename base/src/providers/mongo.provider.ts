@@ -15,16 +15,20 @@ class MongoProvider extends Provider {
   }
 
   systemCheck(): SystemCheckResult {
-    return { success: true };
+    return { success: false };
   }
 
   async performBackup(): Promise<string> {
-    return "";
+    throw new Error('Not yet implemented!');
   }
 
-  testBackup() {}
+  testBackup() {
+    throw new Error('Not yet implemented!');
+  }
 
-  async performRestore() {}
+  async performRestore() {
+    throw new Error('Not yet implemented!');
+  }
 }
 
 export default MongoProvider;

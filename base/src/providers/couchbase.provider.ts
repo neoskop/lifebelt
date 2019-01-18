@@ -119,7 +119,9 @@ class CouchbaseProvider extends Provider {
     await this.performBackup();
   }
 
-  async performRestore() {}
+  async performRestore() {
+    throw new Error('Not yet implemented!');
+  }
 
   private serverUri() {
     return `http://${Config.get("source.host")}:${Config.get("source.port")}`;

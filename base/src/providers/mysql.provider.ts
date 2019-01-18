@@ -187,24 +187,26 @@ class MySQLProvider extends Provider {
 
     winston.debug(`Unpacked ${chalk.bold(artifactPath)} successfully`);
 
-    (await this.getFiles("."))
-      .filter(f => f.endsWith(".qp"))
-      .forEach(f => {
-        const decompressionResult: any = shelljs.exec(
-          `qpress -vd ${f} $(dirname ${f})`,
-          {
-            silent: true
-          }
-        );
-
-        if (decompressionResult.code !== 0) {
-          throw new Error(
-            `Decompression of qpress file ${chalk.bold(f)} failed: ${
-              decompressionResult.stderr
-            }`
-          );
+    const qpressFiles = (await this.getFiles(".")).filter(f =>
+      f.endsWith(".qp")
+    );
+    qpressFiles.forEach(f => {
+      const decompressionResult: any = shelljs.exec(
+        `qpress -vd ${f} $(dirname ${f})`,
+        {
+          silent: true
         }
-      });
+      );
+
+      if (decompressionResult.code !== 0) {
+        throw new Error(
+          `Decompression of qpress file ${chalk.bold(f)} failed: ${
+            decompressionResult.stderr
+          }`
+        );
+      }
+    });
+    qpressFiles.forEach(f => shelljs.rm(f));
 
     winston.debug(`Decompressed qpress files successfully`);
 
@@ -219,9 +221,12 @@ class MySQLProvider extends Provider {
       throw new Error(`Copying of files failed: ${copyResult.stderr}`);
     }
 
-    const chownResult: any = shelljs.exec("chwon -R mysql:mysql /var/lib/mysql", {
-      silent: true
-    });
+    const chownResult: any = shelljs.exec(
+      "chown -R mysql:mysql /var/lib/mysql",
+      {
+        silent: true
+      }
+    );
 
     if (chownResult.code !== 0) {
       throw new Error(
@@ -279,7 +284,11 @@ class MySQLProvider extends Provider {
           if (err) {
             reject(err);
           } else {
-            winston.debug(`${chalk.bold(datadir)} contains the following files: ${files.join(', ')}`);
+            winston.debug(
+              `${chalk.bold(
+                datadir
+              )} contains the following files: ${files.join(", ")}`
+            );
             resolve(!files.length);
           }
         });
