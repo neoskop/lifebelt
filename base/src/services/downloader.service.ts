@@ -12,9 +12,15 @@ export class DownloaderService extends SftpService {
       "projectPrefix"
     )}/latest${extension}`;
     const sftp = await this.connect();
-    winston.debug(`Will try to download ${chalk.bold(remotePath)} to ${chalk.bold(localPath)}.`);
+    winston.debug(
+      `Will try to download ${chalk.bold(remotePath)} to ${chalk.bold(
+        localPath
+      )}.`
+    );
     return new Promise<void>((resolve, reject) => {
       sftp.fastGet(remotePath, localPath, {}, err => {
+        this.disconnect();
+
         if (err) {
           reject(err);
         } else {

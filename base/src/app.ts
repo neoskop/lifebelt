@@ -140,7 +140,7 @@ export class App {
 
   static async backup(argv: Argv) {
     const provider = await App.setup(argv);
-    let filePath;
+    let filePath: string = '';
 
     try {
       filePath = await provider.backup();

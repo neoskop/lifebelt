@@ -22,7 +22,7 @@ class MongoProvider extends Provider {
     throw new Error('Not yet implemented!');
   }
 
-  testBackup() {
+  async testBackup(): Promise<void> {
     throw new Error('Not yet implemented!');
   }
 

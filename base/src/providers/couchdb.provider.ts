@@ -74,7 +74,7 @@ class CouchDBProvider extends Provider {
     return targetFilename;
   }
 
-  testBackup() {}
+  async testBackup(): Promise<void> {}
 
   async performRestore(artifactPath: string) {
     const unpackingResult: any = shelljs.exec(
@@ -89,12 +89,6 @@ class CouchDBProvider extends Provider {
         `Decompression of backup failed: ${unpackingResult.stderr}`
       );
     }
-
-    winston.info(
-      `Backup successfully restored to ${chalk.bold(
-        Config.get("source.dataDir")
-      )}.`
-    );
   }
 
   protected async isDatabaseEmpty(): Promise<boolean> {

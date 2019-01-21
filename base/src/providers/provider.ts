@@ -10,9 +10,9 @@ export abstract class Provider {
   abstract config(): Object;
   abstract systemCheck(): SystemCheckResult;
   abstract displayName(): string;
-  abstract async testBackup();
+  abstract async testBackup(): Promise<void>;
   protected abstract async performBackup(): Promise<string>;
-  protected abstract async performRestore(artifactPath: string);
+  protected abstract async performRestore(artifactPath: string): Promise<void>;
 
   protected async isDatabaseEmpty(): Promise<boolean> {
     return true;
@@ -20,7 +20,7 @@ export abstract class Provider {
 
   protected checkRestorePrereqs() {}
 
-  async restore() {
+  async restore(): Promise<void> {
     this.checkRestorePrereqs();
 
     if (!(await this.isDatabaseEmpty())) {
@@ -29,11 +29,14 @@ export abstract class Provider {
     }
 
     const downloader = new DownloaderService();
-    const tempDirectory = this.createTempDirectory();
-    const artifactPath = `${tempDirectory}/latest${this.artifactExtension()}`;
-    await downloader.fetchLatest(this.artifactExtension(), artifactPath);
-    await this.performRestore(artifactPath);
-    shelljs.exec(`rm -rf ${tempDirectory}`);
+
+    await this.performInTempDirectory(async (tempDirectory: string) => {
+      const artifactPath = `${tempDirectory}/latest${this.artifactExtension()}`;
+      await downloader.fetchLatest(this.artifactExtension(), artifactPath);
+      await this.performRestore(artifactPath);
+    });
+    
+    winston.info("Backup successfully restored");
   }
 
   public async backup(): Promise<string> {
@@ -45,6 +48,15 @@ export abstract class Provider {
       )}ms`
     );
     return filePath;
+  }
+
+  protected async performInTempDirectory(callback: (tempDirectory: string) => Promise<void>) {
+    const tempDirectory = this.createTempDirectory();
+    const oldDir = shelljs.pwd();
+    shelljs.cd(tempDirectory);
+    await callback(tempDirectory);
+    shelljs.cd(oldDir);
+    shelljs.rm('-rf', tempDirectory);
   }
 
   protected createTempDirectory(): string {

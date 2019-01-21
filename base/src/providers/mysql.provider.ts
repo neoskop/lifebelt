@@ -137,7 +137,7 @@ class MySQLProvider extends Provider {
     return targetFilename;
   }
 
-  async testBackup() {
+  async testBackup(): Promise<void> {
     await this.waitForServer();
     await this.performBackup();
   }
@@ -175,66 +175,69 @@ class MySQLProvider extends Provider {
   }
 
   async performRestore(artifactPath: string) {
-    const tempDir = this.createTempDirectory();
-    shelljs.cd(tempDir);
-    const unpackingResult: any = shelljs.exec(`xbstream -x < ${artifactPath}`, {
-      silent: true
-    });
-
-    if (unpackingResult.code !== 0) {
-      throw new Error(`Unpacking of backup failed: ${unpackingResult.stderr}`);
-    }
-
-    winston.debug(`Unpacked ${chalk.bold(artifactPath)} successfully`);
-
-    const qpressFiles = (await this.getFiles(".")).filter(f =>
-      f.endsWith(".qp")
-    );
-    qpressFiles.forEach(f => {
-      const decompressionResult: any = shelljs.exec(
-        `qpress -vd ${f} $(dirname ${f})`,
+    await this.performInTempDirectory(async () => {
+      const unpackingResult: any = shelljs.exec(
+        `xbstream -x < ${artifactPath}`,
         {
           silent: true
         }
       );
 
-      if (decompressionResult.code !== 0) {
+      if (unpackingResult.code !== 0) {
         throw new Error(
-          `Decompression of qpress file ${chalk.bold(f)} failed: ${
-            decompressionResult.stderr
-          }`
+          `Unpacking of backup failed: ${unpackingResult.stderr}`
+        );
+      }
+
+      winston.debug(`Unpacked ${chalk.bold(artifactPath)} successfully`);
+
+      const qpressFiles = (await this.getFiles(".")).filter(f =>
+        f.endsWith(".qp")
+      );
+      qpressFiles.forEach(f => {
+        const decompressionResult: any = shelljs.exec(
+          `qpress -vd ${f} $(dirname ${f})`,
+          {
+            silent: true
+          }
+        );
+
+        if (decompressionResult.code !== 0) {
+          throw new Error(
+            `Decompression of qpress file ${chalk.bold(f)} failed: ${
+              decompressionResult.stderr
+            }`
+          );
+        }
+      });
+      qpressFiles.forEach(f => shelljs.rm(f));
+
+      winston.debug(`Decompressed qpress files successfully`);
+
+      this.prepareBackup(1);
+      this.prepareBackup(2);
+
+      const copyResult: any = shelljs.exec("rsync -avrP . /var/lib/mysql", {
+        silent: true
+      });
+
+      if (copyResult.code !== 0) {
+        throw new Error(`Copying of files failed: ${copyResult.stderr}`);
+      }
+
+      const chownResult: any = shelljs.exec(
+        "chown -R mysql:mysql /var/lib/mysql",
+        {
+          silent: true
+        }
+      );
+
+      if (chownResult.code !== 0) {
+        throw new Error(
+          `Changing ownership of files failed: ${chownResult.stderr}`
         );
       }
     });
-    qpressFiles.forEach(f => shelljs.rm(f));
-
-    winston.debug(`Decompressed qpress files successfully`);
-
-    this.prepareBackup(1);
-    this.prepareBackup(2);
-
-    const copyResult: any = shelljs.exec("rsync -avrP . /var/lib/mysql", {
-      silent: true
-    });
-
-    if (copyResult.code !== 0) {
-      throw new Error(`Copying of files failed: ${copyResult.stderr}`);
-    }
-
-    const chownResult: any = shelljs.exec(
-      "chown -R mysql:mysql /var/lib/mysql",
-      {
-        silent: true
-      }
-    );
-
-    if (chownResult.code !== 0) {
-      throw new Error(
-        `Changing ownership of files failed: ${chownResult.stderr}`
-      );
-    }
-
-    winston.info("Backup successfully restored");
   }
 
   artifactExtension() {
@@ -284,11 +287,13 @@ class MySQLProvider extends Provider {
           if (err) {
             reject(err);
           } else {
-            winston.debug(
-              `${chalk.bold(
-                datadir
-              )} contains the following files: ${files.join(", ")}`
-            );
+            if (files.length) {
+              winston.debug(
+                `${chalk.bold(
+                  datadir
+                )} contains the following files: ${files.join(", ")}`
+              );
+            }
             resolve(!files.length);
           }
         });
