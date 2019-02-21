@@ -2,7 +2,7 @@
 
 # Lifebelt
 
-_lifebelt_ is small Typescript app that can back up different databases and upload them to an SFTP server in a unified manner. The most common use case is to run as a sidecar container in a Kubernetes pod thus giving the tool its nautical name.
+_lifebelt_ is small Typescript app that can back up different databases and upload them to an SFTP server in a unified manner. The most common use case is to run as a sidecar container in a [Kubernetes](https://kubernetes.io) pod thus giving the tool its nautical name.
 
 ## Providers
 
@@ -48,7 +48,7 @@ To set-up SFTP credentials and other config options, either supply them by envir
 To release a new version ensure that the version was adjusted in the [package.json](./base/package.json) and that a tag for this was version was created in the repository. Afterwards you just need to run
 
 ```sh
-$ ./release.sh
+$ ./build.sh
 ```
 
 to create and push new docker images.
@@ -56,13 +56,13 @@ to create and push new docker images.
 ## ToDo
 
 - Implement restoring
-  - MySQL
   - Couchbase
 - Implement verification
 - Add more providers
   - MongoDB
 - Add k8s examples
   - As a sidecar in a pod
+  - With `googlecontainer/leader-elector/` in a HA cluster
   - As a CronJob resource
 - Add warning for anomalies in sizes
 
