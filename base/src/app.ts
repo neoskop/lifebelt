@@ -1,18 +1,19 @@
-import * as winston from "winston";
-import { Config } from "./config";
-import { Provider } from "./providers/provider";
-import chalk from "chalk";
-import { readdir } from "fs";
-import { resolve } from "path";
-import { Argv } from "yargs";
-import { customFormat } from "./custom_format";
-import { exit } from "shelljs";
-import { UploaderService } from "./services/uploader.service";
-import { CronJob } from "cron";
 import { IncomingWebhook } from "@slack/client";
-import { format } from "util";
+import chalk from "chalk";
+import { CronJob } from "cron";
+import { readdir } from "fs";
 import { hostname } from "os";
+import { resolve } from "path";
+import { exit } from "shelljs";
+import { format } from "util";
+import * as winston from "winston";
+import { Argv } from "yargs";
+import { Config } from "./config";
+import { customFormat } from "./custom_format";
+import { Provider } from "./providers/provider";
 import { CleanerService } from "./services/cleaner.service";
+import { ClusterService } from "./services/cluster.service";
+import { UploaderService } from "./services/uploader.service";
 
 export class App {
   private static async loadProvider(providerName: string): Promise<Provider> {
@@ -37,7 +38,7 @@ export class App {
       format: winston.format.combine(winston.format.splat(), customFormat()),
       transports: [
         new winston.transports.Console({
-          level: Config.get("verbose") ? "debug" : "info"
+          level: Boolean(Config.get("verbose")) ? "debug" : "info"
         })
       ]
     });
@@ -140,7 +141,7 @@ export class App {
 
   static async backup(argv: Argv) {
     const provider = await App.setup(argv);
-    let filePath: string = '';
+    let filePath: string = "";
 
     try {
       filePath = await provider.backup();
@@ -205,6 +206,16 @@ export class App {
       schedule,
       () => {
         setTimeout(async () => {
+          if (
+            ClusterService.isClusterModeEnabled() &&
+            !(await ClusterService.isLeader())
+          ) {
+            winston.debug(
+              `Not performing ${interval} backup, because I'm not the leader.`
+            );
+            return;
+          }
+
           const provider = await App.loadProvider(Config.get("source.type"));
           const filePath = await provider.backup();
           const uploader = new UploaderService();
@@ -248,6 +259,7 @@ export class App {
         : Config.get("cron.delay");
     App.scheduleBackupJob("weekly", Config.get("cron.weeklySchedule"), delay);
     App.scheduleBackupJob("daily", Config.get("cron.dailySchedule"), delay);
+    ClusterService.printStatus();
   }
 
   static listProviders(args: Argv) {

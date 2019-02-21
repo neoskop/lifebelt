@@ -1,0 +1,65 @@
+version: "3"
+services:
+  lifebelt-1:
+    image: neoskop/lifebelt-couchdb:latest
+    hostname: lifebelt-1
+    command: cron -v
+    environment:
+      PROJECT_PREFIX: test
+      TARGET_HOST: sftp
+      TARGET_USERNAME: uploader
+      TARGET_PASSWORD: supersecret
+      CLUSTER_ENABLED: "true"
+      CLUSTER_LEADER_URL: http://leader-elector/
+      CRON_DAILY_SCHEDULE: 00 * * * * *
+      CRON_DELAY: "0"
+    depends_on:
+      - db
+      - sftp
+      - leader-elector
+    volumes:
+      - "db-data:/opt/couchdb/data"
+  lifebelt-2:
+    image: neoskop/lifebelt-couchdb:latest
+    hostname: lifebelt-2
+    command: cron -v
+    environment:
+      PROJECT_PREFIX: test
+      TARGET_HOST: sftp
+      TARGET_USERNAME: uploader
+      TARGET_PASSWORD: supersecret
+      CLUSTER_ENABLED: "true"
+      CLUSTER_LEADER_URL: http://leader-elector/
+      CRON_DAILY_SCHEDULE: 00 * * * * *
+      CRON_DELAY: "0"
+    depends_on:
+      - db
+      - sftp
+      - leader-elector
+    volumes:
+      - "db-data:/opt/couchdb/data"
+  leader-elector:
+    image: nginx
+    ports:
+      - 4040:80
+    volumes:
+      - ./leader.json:/usr/share/nginx/html/index.html:ro
+    logging:
+      driver: none
+  db:
+    image: couchdb
+    ports:
+      - 5984:5984
+    volumes:
+      - "db-data:/opt/couchdb/data"
+    logging:
+      driver: none
+  sftp:
+    image: atmoz/sftp:alpine-3.7
+    command: uploader:supersecret:1000::couchdb
+    volumes:
+      - ./uploads:/home/uploader
+    logging:
+      driver: none
+volumes:
+  db-data:
