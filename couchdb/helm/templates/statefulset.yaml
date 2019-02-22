@@ -135,6 +135,7 @@ spec:
           imagePullPolicy: {{ .Values.leaderElectorImage.pullPolicy }}
           args:
             - --election={{ .Release.Name }}-election
+            - --election-namespace={{ .Release.Namespace }}
             - --http=127.0.0.1:4040
           resources:
             requests:
