@@ -56,8 +56,8 @@ initImage:
 
 ## Sidecar that elects a leader pod to perform backups
 leaderElectorImage:
-  repository: k8s.gcr.io/leader-elector
-  tag: 0.5
+  repository: fredrikjanssonse/leader-elector
+  tag: 0.6
   pullPolicy: IfNotPresent
 
 ## Sidecar that performs automatic backups
