@@ -33,6 +33,19 @@ ensure that the latter gets a unique name.
 {{- end -}}
 
 {{/*
+In the event that we create both a headless service and a traditional one,
+ensure that the latter gets a unique name.
+*/}}
+{{- define "couchdb.serviceaccount" -}}
+{{- if .Values.fullnameOverride -}}
+{{- printf "%s-sa-%s" .Values.fullnameOverride .Chart.Name | trunc 63 | trimSuffix "-" -}}
+{{- else -}}
+{{- $name := default .Chart.Name .Values.nameOverride -}}
+{{- printf "%s-sa-%s" .Release.Name $name | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
 Create a random string if the supplied key does not exist
 */}}
 {{- define "couchdb.defaultsecret" -}}

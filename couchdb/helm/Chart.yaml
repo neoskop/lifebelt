@@ -1,6 +1,6 @@
-name: couchdb
-version: 0.0.1
-appVersion: 2.2.0
+name: couchdb-lifebelt
+version: 1.1.1
+appVersion: 2.3.0
 description: A database featuring seamless multi-master sync, that scales from
   big data to mobile, with an intuitive HTTP/JSON API and designed for
   reliability.
@@ -8,6 +8,8 @@ home: https://couchdb.apache.org/
 sources:
   - https://github.com/apache/couchdb
   - https://github.com/kocolosk/couchdb-statefulset-assembler
+  - https://github.com/kubernetes/contrib/tree/master/election
+  - https://github.com/neoskop/lifebelt
 maintainers:
   - name: Arne Diekmann
     email: diekmann@neoskop.de

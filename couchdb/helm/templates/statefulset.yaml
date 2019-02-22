@@ -21,9 +21,11 @@ spec:
         app: {{ template "couchdb.name" . }}
         release: {{ .Release.Name }}
     spec:
+      serviceAccountName: {{ template "couchdb.serviceaccount" . }}
       initContainers:
         - name: init-copy
-          image: busybox
+          image: "{{ .Values.initImage.repository }}:{{ .Values.initImage.tag }}"
+          imagePullPolicy: {{ .Values.initImage.pullPolicy }}
           command: ['sh','-c','cp /tmp/chart.ini /default.d; ls -lrt /default.d;']
           volumeMounts:
           - name: config
@@ -61,14 +63,29 @@ spec:
             - name: ERL_FLAGS
               value: "{{ range $k, $v := .Values.erlangFlags }} -{{ $k }} {{ $v }} {{ end }}"
           livenessProbe:
-            initialDelaySeconds: 60
+{{- if .Values.couchdbConfig.chttpd.require_valid_user }}
+            exec:
+              command:
+                - sh
+                - -c
+                - curl -G --silent --fail -u ${COUCHDB_USER}:${COUCHDB_PASSWORD} http://localhost:5984/
+{{- else }}
             httpGet:
               path: /
               port: 5984
+{{- end }}
           readinessProbe:
+{{- if .Values.couchdbConfig.chttpd.require_valid_user }}
+            exec:
+              command:
+                - sh
+                - -c
+                - curl -G --silent --fail -u ${COUCHDB_USER}:${COUCHDB_PASSWORD} http://localhost:5984/_up
+{{- else }}
             httpGet:
               path: /_up
               port: 5984
+{{- end }}
           resources:
 {{ toYaml .Values.resources | indent 12 }}
           volumeMounts:
@@ -83,6 +100,11 @@ spec:
             requests:
               cpu: "0.1"
               memory: 128Mi
+{{- if .Values.backup.debug }}
+          args:
+            - cron
+            - -v
+{{- end }}
           env:
             - name: PROJECT_PREFIX
               value: {{ .Release.Name }}
@@ -108,6 +130,16 @@ spec:
           volumeMounts:
             - name: database-storage
               mountPath: /opt/couchdb/data/
+        - name: leader-elector
+          image: "{{ .Values.leaderElectorImage.repository }}:{{ .Values.leaderElectorImage.tag }}"
+          imagePullPolicy: {{ .Values.leaderElectorImage.pullPolicy }}
+          args:
+            - --election={{ .Release.Name }}-election
+            - --http=127.0.0.1:4040
+          resources:
+            requests:
+              cpu: "0.1"
+              memory: 128Mi
         - name: couchdb-statefulset-assembler
           image: "{{ .Values.helperImage.repository }}:{{ .Values.helperImage.tag }}"
           imagePullPolicy: {{ .Values.helperImage.pullPolicy }}
@@ -150,9 +182,7 @@ spec:
         name: database-storage
         labels:
           app: {{ template "couchdb.name" . }}
-          chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
           release: {{ .Release.Name }}
-          heritage: {{ .Release.Service }}
       spec:
         accessModes:
         {{- range .Values.persistentVolume.accessModes }}

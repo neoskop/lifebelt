@@ -17,4 +17,8 @@ some required system databases:
     -u <adminUsername>
 {{- end }}
 
-Then it's time to relax.
+Check the status of Lifebelt using:
+
+  kubectl logs --namespace {{ .Release.Namespace }} -l "app={{ template "couchdb.name" . }},release={{ .Release.Name }}" -c lifebelt
+
+Then it's finally time to relax.
