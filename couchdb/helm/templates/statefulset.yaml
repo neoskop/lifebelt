@@ -100,32 +100,32 @@ spec:
             requests:
               cpu: "0.1"
               memory: 128Mi
-{{- if .Values.backup.debug }}
+{{- if .Values.lifebelt.debug }}
           args:
             - cron
             - -v
 {{- end }}
           env:
             - name: PROJECT_PREFIX
-              value: {{ .Release.Name }}
+              value: {{  template "lifebelt.projectprefix" . }}
             - name: TARGET_HOST
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Release.Name }}-backup
+                  name: {{ template "couchdb.fullname" . }}-backup
                   key: host
             - name: TARGET_USERNAME
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Release.Name }}-backup
+                  name: {{ template "couchdb.fullname" . }}-backup
                   key: username
             - name: TARGET_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Release.Name }}-backup
+                  name: {{ template "couchdb.fullname" . }}-backup
                   key: password
-{{- if .Values.backup.slack_webhook }}
+{{- if .Values.lifebelt.slack_webhook }}
             - name: SLACK_WEBHOOK
-              value: {{ .Values.backup.slack_webhook }}
+              value: {{ .Values.lifebelt.slack_webhook }}
 {{- end }}
           volumeMounts:
             - name: database-storage
@@ -134,7 +134,7 @@ spec:
           image: "{{ .Values.leaderElectorImage.repository }}:{{ .Values.leaderElectorImage.tag }}"
           imagePullPolicy: {{ .Values.leaderElectorImage.pullPolicy }}
           args:
-            - --election={{ .Release.Name }}-election
+            - --election={{ template "couchdb.fullname" . }}-election
             - --election-namespace={{ .Release.Namespace }}
             - --http=127.0.0.1:4040
           resources:

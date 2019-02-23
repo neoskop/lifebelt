@@ -55,3 +55,12 @@ Create a random string if the supplied key does not exist
 {{- randAlphaNum 20 | b64enc | quote -}}
 {{- end -}}
 {{- end -}}
+
+
+{{- define "lifebelt.projectprefix" -}}
+{{- if .Values.lifebelt.projectPrefix -}}
+{{- .Values.lifebelt.projectPrefix -}}
+{{- else -}}
+{{- .Release.Name -}}
+{{- end -}}
+{{- end -}}

@@ -142,9 +142,10 @@ couchdbConfig:
     # 5984 when is set to true.
     require_valid_user: false
 
-backup:
+lifebelt:
   #slack_webhook:
-  debug: true
+  debug: false
+  # projectPrefix: custom-prefix
   target:
     host: backup
     username: backup
