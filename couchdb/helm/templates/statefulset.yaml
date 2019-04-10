@@ -63,6 +63,8 @@ spec:
             - name: ERL_FLAGS
               value: "{{ range $k, $v := .Values.erlangFlags }} -{{ $k }} {{ $v }} {{ end }}"
           livenessProbe:
+            initialDelaySeconds: 90
+            periodSeconds: 30
 {{- if .Values.couchdbConfig.chttpd.require_valid_user }}
             exec:
               command:
@@ -75,6 +77,8 @@ spec:
               port: 5984
 {{- end }}
           readinessProbe:
+            initialDelaySeconds: 90
+            periodSeconds: 30
 {{- if .Values.couchdbConfig.chttpd.require_valid_user }}
             exec:
               command:
