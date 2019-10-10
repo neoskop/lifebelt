@@ -1,4 +1,4 @@
-FROM node:10.7.0-slim
+FROM node:12.11.1-slim
 ENV COUCHBASE_VERSION=4.5.1 \
     SOURCE_TYPE=couchbase \
     NODE_ENV=production \

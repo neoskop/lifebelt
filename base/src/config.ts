@@ -108,7 +108,7 @@ export class Config {
       }
     }
   };
-  private static schema = convict(Config.initialConfig);
+  private static schema: any = convict(Config.initialConfig);
   private static mandatoryKeys = [
     "projectPrefix",
     "source.type",

@@ -123,16 +123,11 @@ export class App {
           }
         ]
       };
-      return new Promise(resolve => {
-        webhook.send(slackMessage, (err, res) => {
-          if (err) {
-            winston.error(`Sending of slack message failed: ${err}`);
-          } else {
-            winston.debug(`Sent slack message`);
-          }
 
-          resolve();
-        });
+      return new Promise(async resolve => {
+        const result = await webhook.send(slackMessage);
+        winston.debug(`Sent slack message: ${result}`);
+        resolve();
       });
     }
 
@@ -271,10 +266,12 @@ export class App {
         .filter(f => !f.startsWith("provider") && !f.endsWith(".map"))
         .map(f => {
           return new Promise((resolve, reject) => {
-            import(`./providers/${f
-              .split(".")
-              .slice(0, -1)
-              .join(".")}`)
+            import(
+              `./providers/${f
+                .split(".")
+                .slice(0, -1)
+                .join(".")}`
+            )
               .then(clazz => {
                 try {
                   const provider: Provider = new clazz.default();

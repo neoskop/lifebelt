@@ -1,4 +1,4 @@
-FROM node:10.7.0-slim
+FROM node:12.11.1-slim
 ENV SOURCE_TYPE=couchdb \
     NODE_ENV=production \
     FORCE_COLOR=1

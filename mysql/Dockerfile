@@ -1,8 +1,8 @@
-FROM node:10.7.0-slim
+FROM node:12.11.1-slim
 ENV SOURCE_TYPE=mysql \
     NODE_ENV=production \
     FORCE_COLOR=1 \
-    DEBIAN_CODENAME=jessie
+    DEBIAN_CODENAME=stretch
 USER root
 RUN . /etc/os-release && \
     wget https://repo.percona.com/apt/percona-release_0.1-4.${DEBIAN_CODENAME}_all.deb && \
