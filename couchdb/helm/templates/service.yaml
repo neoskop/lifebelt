@@ -8,6 +8,10 @@ metadata:
     chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
+{{- if .Values.service.annotations }}
+  annotations:
+{{ toYaml .Values.service.annotations | indent 4 }}
+{{- end }}
 spec:
   ports:
     - port: {{ .Values.service.externalPort }}
@@ -15,6 +19,5 @@ spec:
       targetPort: 5984
   type: {{ .Values.service.type }}
   selector:
-    app: {{ template "couchdb.name" . }}
-    release: {{ .Release.Name }}
+{{ include "couchdb.ss.selector" . | indent 4 }}
 {{- end -}}

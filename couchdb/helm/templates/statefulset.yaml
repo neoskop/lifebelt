@@ -13,90 +13,27 @@ spec:
   podManagementPolicy: {{ .Values.podManagementPolicy }}
   selector:
     matchLabels:
-      app: {{ template "couchdb.name" . }}
-      release: {{ .Release.Name }}
+{{ include "couchdb.ss.selector" . | indent 6 }}
   template:
     metadata:
       labels:
-        app: {{ template "couchdb.name" . }}
-        release: {{ .Release.Name }}
+{{ include "couchdb.ss.selector" . | indent 8 }}
     spec:
       serviceAccountName: {{ template "couchdb.serviceaccount" . }}
+      {{- if .Values.schedulerName }}
+      schedulerName: "{{ .Values.schedulerName }}"
+      {{- end }}
       initContainers:
         - name: init-copy
           image: "{{ .Values.initImage.repository }}:{{ .Values.initImage.tag }}"
           imagePullPolicy: {{ .Values.initImage.pullPolicy }}
-          command: ['sh','-c','cp /tmp/chart.ini /default.d; ls -lrt /default.d;']
+          command: ['sh','-c','cp /tmp/chart.ini /default.d; cp /tmp/seedlist.ini /default.d; ls -lrt /default.d;']
           volumeMounts:
           - name: config
             mountPath: /tmp/
           - name: config-storage
             mountPath: /default.d
       containers:
-        - name: couchdb
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
-          ports:
-            - name: couchdb
-              containerPort: 5984
-            - name: epmd
-              containerPort: 4369
-            - containerPort: 9100
-          env:
-{{- if not .Values.allowAdminParty }}
-            - name: COUCHDB_USER
-              valueFrom:
-                secretKeyRef:
-                  name: {{ template "couchdb.fullname" . }}
-                  key: adminUsername
-            - name: COUCHDB_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: {{ template "couchdb.fullname" . }}
-                  key: adminPassword
-            - name: COUCHDB_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: {{ template "couchdb.fullname" . }}
-                  key: cookieAuthSecret
-{{- end }}
-            - name: ERL_FLAGS
-              value: "{{ range $k, $v := .Values.erlangFlags }} -{{ $k }} {{ $v }} {{ end }}"
-          livenessProbe:
-            initialDelaySeconds: 90
-            periodSeconds: 30
-{{- if .Values.couchdbConfig.chttpd.require_valid_user }}
-            exec:
-              command:
-                - sh
-                - -c
-                - curl -G --silent --fail -u ${COUCHDB_USER}:${COUCHDB_PASSWORD} http://localhost:5984/
-{{- else }}
-            httpGet:
-              path: /
-              port: 5984
-{{- end }}
-          readinessProbe:
-            initialDelaySeconds: 90
-            periodSeconds: 30
-{{- if .Values.couchdbConfig.chttpd.require_valid_user }}
-            exec:
-              command:
-                - sh
-                - -c
-                - curl -G --silent --fail -u ${COUCHDB_USER}:${COUCHDB_PASSWORD} http://localhost:5984/_up
-{{- else }}
-            httpGet:
-              path: /_up
-              port: 5984
-{{- end }}
-          resources:
-{{ toYaml .Values.resources | indent 12 }}
-          volumeMounts:
-          - name: config-storage
-            mountPath: /opt/couchdb/etc/default.d
-          - name: database-storage
-            mountPath: /opt/couchdb/data
         - name: lifebelt
           image: "{{ .Values.backupImage.repository }}:{{ .Values.backupImage.tag }}"
           imagePullPolicy: {{ .Values.backupImage.pullPolicy }}
@@ -145,11 +82,17 @@ spec:
             requests:
               cpu: "0.1"
               memory: 128Mi
-        - name: couchdb-statefulset-assembler
-          image: "{{ .Values.helperImage.repository }}:{{ .Values.helperImage.tag }}"
-          imagePullPolicy: {{ .Values.helperImage.pullPolicy }}
-{{- if not .Values.allowAdminParty }}
+        - name: couchdb
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: couchdb
+              containerPort: 5984
+            - name: epmd
+              containerPort: 4369
+            - containerPort: 9100
           env:
+{{- if not .Values.allowAdminParty }}
             - name: COUCHDB_USER
               valueFrom:
                 secretKeyRef:
@@ -160,6 +103,52 @@ spec:
                 secretKeyRef:
                   name: {{ template "couchdb.fullname" . }}
                   key: adminPassword
+            - name: COUCHDB_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ template "couchdb.fullname" . }}
+                  key: cookieAuthSecret
+{{- end }}
+            - name: ERL_FLAGS
+              value: "{{ range $k, $v := .Values.erlangFlags }} -{{ $k }} {{ $v }} {{ end }}"
+          livenessProbe:
+{{- if .Values.couchdbConfig.chttpd.require_valid_user }}
+            exec:
+              command:
+                - sh
+                - -c
+                - curl -G --silent --fail -u ${COUCHDB_USER}:${COUCHDB_PASSWORD} http://localhost:5984/
+{{- else }}
+            httpGet:
+              path: /
+              port: 5984
+{{- end }}
+          readinessProbe:
+{{- if .Values.couchdbConfig.chttpd.require_valid_user }}
+            exec:
+              command:
+                - sh
+                - -c
+                - curl -G --silent --fail -u ${COUCHDB_USER}:${COUCHDB_PASSWORD} http://localhost:5984/_up
+{{- else }}
+            httpGet:
+              path: /_up
+              port: 5984
+{{- end }}
+          resources:
+{{ toYaml .Values.resources | indent 12 }}
+          volumeMounts:
+          - name: config-storage
+            mountPath: /opt/couchdb/etc/default.d
+          - name: database-storage
+            mountPath: /opt/couchdb/data
+{{- if .Values.enableSearch }}
+        - name: clouseau
+          image: "{{ .Values.searchImage.repository }}:{{ .Values.searchImage.tag }}"
+          imagePullPolicy: {{ .Values.searchImage.pullPolicy }}
+          volumeMounts:
+          - name: database-storage
+            mountPath: /opt/couchdb-search/data
 {{- end }}
 {{- if .Values.nodeSelector }}
       nodeSelector:
@@ -178,6 +167,9 @@ spec:
             items:
               - key: inifile
                 path: chart.ini
+              - key: seedlistinifile
+                path: seedlist.ini
+
 {{- if not .Values.persistentVolume.enabled }}
         - name: database-storage
           emptyDir: {}

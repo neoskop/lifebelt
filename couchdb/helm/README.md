@@ -14,7 +14,7 @@ storage volumes to each Pod in the Deployment.
 ## TL;DR
 
 ```bash
-$ helm install incubator/couchdb --set allowAdminParty=true
+$ helm install stable/couchdb --set allowAdminParty=true
 ```
 
 ## Prerequisites
@@ -26,8 +26,7 @@ $ helm install incubator/couchdb --set allowAdminParty=true
 To install the chart with the release name `my-release`:
 
 ```bash
-$ helm repo add incubator http://storage.googleapis.com/kubernetes-charts-incubator
-$ helm install --name my-release incubator/couchdb
+$ helm install --name my-release stable/couchdb
 ```
 
 This will create a Secret containing the admin credentials for the cluster.
@@ -47,7 +46,7 @@ $  kubectl create secret generic my-release-couchdb --from-literal=adminUsername
 and then install the chart while overriding the `createAdminSecret` setting:
 
 ```bash
-$ helm install --name my-release --set createAdminSecret=false incubator/couchdb
+$ helm install --name my-release --set createAdminSecret=false stable/couchdb
 ```
 
 This Helm chart deploys CouchDB on the Kubernetes cluster in a default
@@ -89,42 +88,46 @@ $ kubectl delete statefulsets --cascade=false my-release-couchdb
 The following table lists the most commonly configured parameters of the
 CouchDB chart and their default values:
 
-|           Parameter             |             Description                               |                Default                 |
-|---------------------------------|-------------------------------------------------------|----------------------------------------|
-| `clusterSize`                   | The initial number of nodes in the CouchDB cluster    | 3                                      |
-| `couchdbConfig`                 | Map allowing override elements of server .ini config  | chttpd.bind_address=any                |
-| `allowAdminParty`               | If enabled, start cluster without admin account       | false (requires creating a Secret)     |
-| `createAdminSecret`             | If enabled, create an admin account and cookie secret | true                                   |
-| `erlangFlags`                   | Map of flags supplied to the underlying Erlang VM     | name: couchdb, setcookie: monster
-| `persistentVolume.enabled`      | Boolean determining whether to attach a PV to each node | false
-| `persistentVolume.size`         | If enabled, the size of the persistent volume to attach                          | 10Gi
+| Parameter                  | Description                                             | Default                            |
+| -------------------------- | ------------------------------------------------------- | ---------------------------------- |
+| `clusterSize`              | The initial number of nodes in the CouchDB cluster      | 3                                  |
+| `couchdbConfig`            | Map allowing override elements of server .ini config    | chttpd.bind_address=any            |
+| `allowAdminParty`          | If enabled, start cluster without admin account         | false (requires creating a Secret) |
+| `createAdminSecret`        | If enabled, create an admin account and cookie secret   | true                               |
+| `schedulerName`            | Name of the k8s scheduler (other than default)          | `nil`                              |
+| `erlangFlags`              | Map of flags supplied to the underlying Erlang VM       | name: couchdb, setcookie: monster  |
+| `persistentVolume.enabled` | Boolean determining whether to attach a PV to each node | false                              |
+| `persistentVolume.size`    | If enabled, the size of the persistent volume to attach | 10Gi                               |
+| `enableSearch`             | Adds a sidecar for Lucene-powered text search           | false                              |
 
 A variety of other parameters are also configurable. See the comments in the
 `values.yaml` file for further details:
 
-|           Parameter             |                Default                 |
-|---------------------------------|----------------------------------------|
-| `adminUsername`                 | admin                                  |
-| `adminPassword`                 | auto-generated                         |
-| `cookieAuthSecret`              | auto-generated                         |
-| `helperImage.repository`        | kocolosk/couchdb-statefulset-assembler |
-| `helperImage.tag`               | 1.2.0                                  |
-| `helperImage.pullPolicy`        | IfNotPresent                           |
-| `image.repository`              | couchdb                                |
-| `image.tag`                     | 2.3.0                                  |
-| `image.pullPolicy`              | IfNotPresent                           |
-| `initImage.repository`          | busybox                                |
-| `initImage.tag`                 | latest                                 |
-| `initImage.pullPolicy`          | Always                                 |
-| `ingress.enabled`               | false                                  |
-| `ingress.hosts`                 | chart-example.local                    |
-| `ingress.annotations`           |                                        |
-| `ingress.tls`                   |                                        |
-| `persistentVolume.accessModes`  | ReadWriteOnce                          |
-| `persistentVolume.storageClass` | Default for the Kube cluster           |
-| `podManagementPolicy`           | Parallel                               |
-| `affinity`                      |                                        |
-| `resources`                     |                                        |
-| `service.enabled`               | true                                   |
-| `service.type`                  | ClusterIP                              |
-| `service.externalPort`          | 5984                                   |
+| Parameter                       | Default                      |
+| ------------------------------- | ---------------------------- |
+| `adminUsername`                 | admin                        |
+| `adminPassword`                 | auto-generated               |
+| `cookieAuthSecret`              | auto-generated               |
+| `image.repository`              | couchdb                      |
+| `image.tag`                     | 2.3.1                        |
+| `image.pullPolicy`              | IfNotPresent                 |
+| `searchImage.repository`        | kocolosk/couchdb-search      |
+| `searchImage.tag`               | 0.1.0                        |
+| `searchImage.pullPolicy`        | IfNotPresent                 |
+| `initImage.repository`          | busybox                      |
+| `initImage.tag`                 | latest                       |
+| `initImage.pullPolicy`          | Always                       |
+| `ingress.enabled`               | false                        |
+| `ingress.hosts`                 | chart-example.local          |
+| `ingress.annotations`           |                              |
+| `ingress.tls`                   |                              |
+| `persistentVolume.accessModes`  | ReadWriteOnce                |
+| `persistentVolume.storageClass` | Default for the Kube cluster |
+| `podManagementPolicy`           | Parallel                     |
+| `affinity`                      |                              |
+| `resources`                     |                              |
+| `service.annotations`           |                              |
+| `service.enabled`               | true                         |
+| `service.type`                  | ClusterIP                    |
+| `service.externalPort`          | 5984                         |
+| `dns.clusterDomainSuffix`       | cluster.local                |
