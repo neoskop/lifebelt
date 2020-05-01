@@ -11,7 +11,9 @@
     "dev": "NODE_ENV=development npm run nodemon",
     "test": "echo \"Error: no test specified\" && exit 1",
     "nodemon": "nodemon -e ts -w \"./src\" -x \"npm run debug\"",
-    "debug": "node -r ts-node/register --inspect ./src/index.ts"
+    "debug": "node -r ts-node/register --inspect ./src/index.ts",
+    "snyk-protect": "snyk protect",
+    "prepublish": "npm run snyk-protect"
   },
   "author": "Arne Diekmann <diekmann@neoskop.de>",
   "license": "Apache 2.0",
@@ -44,9 +46,11 @@
     "shelljs": "0.8.3",
     "ssh2": "0.8.5",
     "winston": "3.2.1",
-    "yargs": "14.2.0"
+    "yargs": "14.2.0",
+    "snyk": "^1.316.1"
   },
   "engines": {
     "node": ">=12.7.0"
-  }
+  },
+  "snyk": true
 }
