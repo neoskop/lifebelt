@@ -38,7 +38,7 @@
     "convict": "6.2.3",
     "cron": "1.7.2",
     "deepmerge": "4.1.1",
-    "moment": "2.24.0",
+    "moment": "2.29.2",
     "prettyjson": "1.2.1",
     "request": "2.88.0",
     "shelljs": "0.8.3",
